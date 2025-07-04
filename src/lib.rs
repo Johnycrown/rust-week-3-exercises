@@ -78,8 +78,6 @@ impl CompactSize {
                 ]);
                 Ok((CompactSize::new(val), 9))
             }
-
-            _ => Err(BitcoinError::InvalidFormat),
         }
     }
 }
@@ -339,5 +337,30 @@ impl BitcoinTransaction {
             },
             offset,
         ))
+    }
+}
+
+impl fmt::Display for BitcoinTransaction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "BitcoinTransaction {{")?;
+        writeln!(f, "  version: {}", self.version)?;
+        writeln!(f, "  lock_time: {}", self.lock_time)?;
+        writeln!(f, "  inputs [{}]:", self.inputs.len())?;
+        for (i, input) in self.inputs.iter().enumerate() {
+            // prev txid in human-readable hex (reverse back to big-endian for display)
+            let mut be_txid = input.previous_output.txid.0;
+            be_txid.reverse();
+            let txid_hex = hex::encode(be_txid);
+
+            // scriptSig as hex
+            let script_hex = hex::encode(&*input.script_sig);
+
+            writeln!(
+                f,
+                "    [{}] outpoint: {}:{} script_sig: {} sequence: {}",
+                i, txid_hex, input.previous_output.vout, script_hex, input.sequence
+            )?;
+        }
+        write!(f, "}}")
     }
 }
