@@ -104,12 +104,38 @@ impl Serialize for Txid {
 impl<'de> Deserialize<'de> for Txid {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
-        // TODO: Parse hex string into 32-byte array
-        // Use `hex::decode`, validate length = 32
+        struct TxidVisitor;
+
+        impl<'de> Visitor<'de> for TxidVisitor {
+            type Value = Txid;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a 64-character hex string representing a Txid")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: DeError,
+            {
+                let bytes = hex::decode(v).map_err(DeError::custom)?;
+
+                if bytes.len() != 32 {
+                    return Err(DeError::custom("Txid must be exactly 32 bytes"));
+                }
+
+                // Bitcoin txids are serialized in little-endian, so reverse the byte order
+                let mut reversed = [0u8; 32];
+                reversed.copy_from_slice(&bytes.iter().rev().cloned().collect::<Vec<u8>>());
+                Ok(Txid(reversed))
+            }
+        }
+
+        deserializer.deserialize_str(TxidVisitor)
     }
 }
+
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct OutPoint {
