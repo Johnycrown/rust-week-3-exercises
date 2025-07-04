@@ -33,13 +33,28 @@ impl CompactSize {
 }
 
 
-//     pub fn to_bytes(&self) -> Vec<u8> {
-//         // TODO: Encode according to Bitcoin's CompactSize format:
-//         // [0x00–0xFC] => 1 byte
-//         // [0xFDxxxx] => 0xFD + u16 (2 bytes)
-//         // [0xFExxxxxxxx] => 0xFE + u32 (4 bytes)
-//         // [0xFFxxxxxxxxxxxxxxxx] => 0xFF + u64 (8 bytes)
-//     }
+    pub fn to_bytes(&self) -> Vec<u8> {
+    let value = self.value;
+    let mut encoded = Vec::new();
+
+    if value < 0xFD {
+        // [0x00–0xFC] => 1 byte
+        encoded.push(value as u8);
+    } else if value <= 0xFFFF {
+        // [0xFDxxxx] => 0xFD + u16 (2 bytes)
+        encoded.push(0xFD);
+        encoded.extend_from_slice(&(value as u16).to_le_bytes());
+    } else if value <= 0xFFFF_FFFF {
+        // [0xFExxxxxxxx] => 0xFE + u32 (4 bytes)
+        encoded.push(0xFE);
+        encoded.extend_from_slice(&(value as u32).to_le_bytes());
+    } else {
+        // [0xFFxxxxxxxxxxxxxxxx] => 0xFF + u64 (8 bytes)
+        encoded.push(0xFF);
+        encoded.extend_from_slice(&value.to_le_bytes());
+
+    encoded
+}
 
 //     pub fn from_bytes(bytes: &[u8]) -> Result<(Self, usize), BitcoinError> {
 //         // TODO: Decode CompactSize, returning value and number of bytes consumed.
