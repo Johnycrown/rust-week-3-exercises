@@ -81,7 +81,7 @@ impl CompactSize {
             _ => Err(BitcoinError::InvalidFormat),
         }
     }
-
+}
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Txid(pub [u8; 32]);
 
@@ -90,7 +90,14 @@ impl Serialize for Txid {
     where
         S: serde::Serializer,
     {
-        // TODO: Serialize as a hex-encoded string (32 bytes => 64 hex characters)
+        // Reverse the byte order (Bitcoin txids are displayed in little-endian)
+        let reversed: Vec<u8> = self.0.iter().rev().cloned().collect();
+
+        // Encode the reversed bytes to hex
+        let hex_string = hex::encode(reversed);
+
+        // Serialize the hex string
+        serializer.serialize_str(&hex_string)
     }
 }
 
